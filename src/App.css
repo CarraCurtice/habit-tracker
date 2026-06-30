@@ -1,0 +1,610 @@
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #FFFAF7;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  background: linear-gradient(135deg, #FF6B4A 0%, #FFAD42 60%, #FFD166 100%);
+  padding: 1.4rem 1.25rem 1.1rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.app-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: white;
+}
+
+.app-date {
+  font-size: 0.82rem;
+  opacity: 0.9;
+  margin-top: 0.2rem;
+  font-weight: 500;
+}
+
+.progress-bar-track {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  height: 7px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background: white;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.progress-msg {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.92;
+  margin-top: 0.45rem;
+  text-align: center;
+}
+
+/* ── Sunday reset banner ────────────────────────────────────────────────── */
+
+.reset-banner {
+  background: linear-gradient(135deg, #4ECDC4 0%, #26C6DA 100%);
+  margin: 0.75rem;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  color: white;
+  box-shadow: 0 4px 16px rgba(78, 205, 196, 0.35);
+}
+
+.reset-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.reset-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.reset-sub {
+  font-size: 0.78rem;
+  opacity: 0.9;
+  margin-top: 0.15rem;
+}
+
+.reset-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.reset-dismiss {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── Tab nav ─────────────────────────────────────────────────────────────── */
+
+.tab-nav {
+  display: flex;
+  background: white;
+  border-bottom: 1.5px solid #F0EAE4;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.9rem 0;
+  border: none;
+  background: transparent;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #B5ADA6;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.01em;
+}
+
+.tab-btn.active {
+  color: #FF6B4A;
+  border-bottom-color: #FF6B4A;
+}
+
+/* ── Main content ────────────────────────────────────────────────────────── */
+
+.main {
+  flex: 1;
+  padding: 0.85rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Habit cards ─────────────────────────────────────────────────────────── */
+
+.habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.habit-card {
+  background: white;
+  border-radius: 14px;
+  padding: 0.95rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  transition: transform 0.12s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  outline: none;
+}
+
+.habit-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 107, 74, 0.4);
+}
+
+.habit-card:active {
+  transform: scale(0.97);
+}
+
+.habit-card.done {
+  background: #FFF5F2;
+  border-color: rgba(255, 107, 74, 0.4);
+  box-shadow: 0 1px 6px rgba(255, 107, 74, 0.12);
+}
+
+.habit-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.checkbox {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #DDD5CC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: white;
+}
+
+.checkbox.checked {
+  background: linear-gradient(135deg, #FF6B4A, #FFAD42);
+  border-color: transparent;
+}
+
+.habit-icon {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.habit-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #2D3436;
+  line-height: 1.3;
+}
+
+.habit-name.done-text {
+  color: #B5ADA6;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 107, 74, 0.5);
+}
+
+.streak-badge {
+  background: #FFF3E0;
+  color: #E65100;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.streak-badge.small {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+}
+
+/* ── Week view ───────────────────────────────────────────────────────────── */
+
+.week-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.week-card {
+  background: white;
+  border-radius: 14px;
+  padding: 0.9rem 0.75rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  overflow-x: auto;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: 34px repeat(7, 1fr);
+  gap: 0.3rem 0.25rem;
+  min-width: 260px;
+}
+
+.wg-spacer {
+  /* empty top-left corner */
+}
+
+.wg-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #F0EAE4;
+}
+
+.wg-day-name {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #B5ADA6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wg-day-num {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #B5ADA6;
+}
+
+.wg-day-header.today .wg-day-name,
+.wg-day-header.today .wg-day-num {
+  color: #FF6B4A;
+}
+
+.wg-row {
+  display: contents;
+}
+
+.wg-habit-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  height: 30px;
+}
+
+.wg-dot-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+}
+
+.wg-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #EDE8E3;
+  transition: background 0.25s;
+}
+
+.wg-dot.done {
+  background: linear-gradient(135deg, #FF6B4A, #FFD166);
+  box-shadow: 0 2px 6px rgba(255, 107, 74, 0.35);
+}
+
+.wg-dot.future {
+  opacity: 0.35;
+}
+
+/* ── Week summary ────────────────────────────────────────────────────────── */
+
+.week-summary-card {
+  background: white;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #B5ADA6;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.3rem;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.summary-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #636E72;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: #EDE8E3;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.summary-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FF6B4A, #FFD166);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.summary-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #FF6B4A;
+  white-space: nowrap;
+  width: 26px;
+  text-align: right;
+}
+
+/* ── Goals ───────────────────────────────────────────────────────────────── */
+
+.goals-card {
+  background: white;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
+}
+
+.goals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.1rem;
+}
+
+.goals-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #2D3436;
+  letter-spacing: -0.02em;
+}
+
+.goals-week-label {
+  font-size: 0.78rem;
+  color: #B5ADA6;
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+
+.edit-btn {
+  background: #FFF5F2;
+  color: #FF6B4A;
+  border: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+
+.edit-btn:active {
+  background: #FFE8E2;
+}
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.goal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  background: linear-gradient(135deg, #FFF8F4, #FFFAF5);
+  border-radius: 10px;
+  border-left: 3px solid #FFD166;
+}
+
+.goal-star {
+  color: #FFD166;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.goal-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2D3436;
+  line-height: 1.4;
+}
+
+.goals-empty-state {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.goals-empty-state p {
+  color: #B5ADA6;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.goal-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.goal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.goal-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B4A, #FFD166);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.goal-input {
+  flex: 1;
+  border: 2px solid #EDE8E3;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.88rem;
+  color: #2D3436;
+  background: #FFFAF7;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.goal-input:focus {
+  border-color: #FF6B4A;
+  background: white;
+}
+
+.goal-input::placeholder {
+  color: #C8C0B8;
+}
+
+.goals-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  padding: 0.72rem 1.4rem;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.01em;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn-coral {
+  background: linear-gradient(135deg, #FF6B4A, #FF8A65);
+  color: white;
+  box-shadow: 0 4px 14px rgba(255, 107, 74, 0.35);
+}
+
+.btn-teal {
+  background: linear-gradient(135deg, #4ECDC4, #26C6DA);
+  color: white;
+  box-shadow: 0 4px 14px rgba(78, 205, 196, 0.35);
+}
+
+.btn-white {
+  background: white;
+  color: #4ECDC4;
+  font-size: 0.82rem;
+  padding: 0.5rem 1rem;
+}
+
+.btn-ghost-dark {
+  background: none;
+  border: none;
+  color: #B5ADA6;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem;
+}
