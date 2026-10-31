@@ -194,3 +194,12 @@ body {
 
 .squiggle { display: block; width: 100%; height: 16px; margin: 22px 0 8px; fill: none; stroke: var(--yellow); stroke-width: 3; }
 .foot { text-align: center; color: rgba(255, 255, 255, 0.7); font-size: 0.8rem; }
+
+/* weekly goals */
+.group-title { font: 400 0.85rem var(--display); color: var(--yellow); letter-spacing: 0.04em; margin: 4px 2px -4px; }
+.goal-badge { font: 400 0.78rem var(--display); background: #fff; border: 2px solid var(--ink); border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
+.goal-badge.met { background: var(--yellow); }
+.goal-tag { font-size: 0.72rem; font-weight: 600; color: var(--muted); }
+.cell.off { background: #fff; }
+.name-freq { display: grid; gap: 4px; min-width: 0; }
+.input.freq { padding: 4px 8px; font-size: 0.85rem; }

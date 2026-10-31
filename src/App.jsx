@@ -12,6 +12,23 @@ const DEFAULT_HABITS = [
   { id: 'stop-tasks', name: 'Stop tasks 90 min before leaving', icon: '⏰' },
 ];
 
+// Carra's current habits (set Oct 31, 2026). perWeek = weekly goal; no perWeek = every day.
+const PRESET_V2 = [
+  { id: 'bedtime', name: 'In bed by 9:30', icon: '🌙' },
+  { id: 'no-screens-9', name: 'No screens after 9:00 PM', icon: '📴' },
+  { id: 'wake-up', name: 'Up on time (no snooze)', icon: '⏰' },
+  { id: 'no-phone', name: 'No phone first 30 to 60 min', icon: '📵' },
+  { id: 'gym', name: 'Gym', icon: '🏋️', perWeek: 2 },
+  { id: 'walk-biscuit', name: 'Walk Biscuit', icon: '🐕', perWeek: 5 },
+  { id: 'learning', name: 'Focused learning (20 min, no multitasking)', icon: '🎧', perWeek: 3 },
+];
+function applyPresetV2(habits, today) {
+  const keep = new Map(habits.map((h) => [h.id, h]));
+  const next = PRESET_V2.map((p) => ({ ...(keep.get(p.id) || { since: today }), ...p, active: true }));
+  const archived = habits.filter((h) => !PRESET_V2.some((p) => p.id === h.id)).map((h) => ({ ...h, active: false }));
+  return [...next, ...archived];
+}
+
 // ─── Dates ───────────────────────────────────────────────────────────────────
 const fmt = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -61,11 +78,26 @@ function initialHabits() {
   });
 }
 
-// Honest score for one habit over a range of days (only counts days since the habit was added)
-function score(habit, completions, days) {
-  const counted = days.filter((d) => fmt(d) >= habit.since);
-  const done = counted.filter((d) => completions[fmt(d)]?.includes(habit.id)).length;
-  return { done, of: counted.length };
+// Honest score for one habit in one calendar week (Mon to Sun).
+// Daily habits: days done out of days so far. Weekly goals: done (capped at the goal) out of the goal.
+function weekScore(habit, completions, monday, today) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  if (fmt(days[6]) < habit.since) return { done: 0, of: 0, extra: 0 };
+  const doneDays = days.filter((d) => d <= today && completions[fmt(d)]?.includes(habit.id)).length;
+  if (habit.perWeek) {
+    return { done: Math.min(doneDays, habit.perWeek), of: habit.perWeek, extra: Math.max(0, doneDays - habit.perWeek), raw: doneDays };
+  }
+  const counted = days.filter((d) => d <= today && fmt(d) >= habit.since);
+  return { done: doneDays, of: counted.length, extra: 0 };
+}
+const sum = (list) => list.reduce((a, x) => ({ done: a.done + x.done, of: a.of + x.of }), { done: 0, of: 0 });
+const goalLabel = (h) => (h.perWeek ? `${h.perWeek}x a week` : 'every day');
+function cellState(h, completions, d, today) {
+  const ds = fmt(d);
+  if (d > today || ds < h.since) return 'future';
+  if (completions[ds]?.includes(h.id)) return 'done';
+  if (ds === fmt(today)) return 'today';
+  return h.perWeek ? 'off' : 'miss';
 }
 const pctOf = ({ done, of }) => (of ? Math.round((done / of) * 100) : null);
 
@@ -87,13 +119,15 @@ const Sparkle = ({ className }) => (
 );
 
 // ─── Today ───────────────────────────────────────────────────────────────────
-function HabitCard({ habit, done, streak, onToggle }) {
+function HabitCard({ habit, done, streak, week, onToggle }) {
   return (
     <button className={`habit-card${done ? ' done' : ''}`} onClick={onToggle} aria-pressed={done}>
       <span className="habit-check">{done ? '✓' : ''}</span>
       <span className="habit-icon">{habit.icon}</span>
       <span className="habit-name">{habit.name}</span>
-      {streak > 1 && <span className="streak">🔥{streak}</span>}
+      {habit.perWeek ? (
+        week && <span className={`goal-badge${week.raw >= habit.perWeek ? ' met' : ''}`}>{week.raw}/{habit.perWeek} wk{week.raw >= habit.perWeek ? ' ✓' : ''}</span>
+      ) : streak > 1 && <span className="streak">🔥{streak}</span>}
     </button>
   );
 }
@@ -103,14 +137,21 @@ function TodayTab({ habits, completions, toggle, today }) {
   const yesterday = addDays(today, -1);
   const yStr = fmt(yesterday);
   const [showYesterday, setShowYesterday] = useState(false);
-  const yMissing = habits.filter((h) => h.since <= yStr && !completions[yStr]?.includes(h.id)).length;
+  const yMissing = habits.filter((h) => !h.perWeek && h.since <= yStr && !completions[yStr]?.includes(h.id)).length;
+  const monday = getWeekDates(today)[0];
+  const daily = habits.filter((h) => !h.perWeek), weekly = habits.filter((h) => h.perWeek);
+  const card = (h, day) => (
+    <HabitCard key={h.id} habit={h} done={!!completions[day]?.includes(h.id)}
+      streak={day === todayStr ? getStreak(h.id, completions, today) : 0}
+      week={weekScore(h, completions, monday, today)} onToggle={() => toggle(day, h.id)} />
+  );
   return (
     <div className="stack">
-      {habits.length === 0 && <div className="card empty">No habits yet. Tap ⚙️ Habits to add 3 to 5.</div>}
-      {habits.map((h) => (
-        <HabitCard key={h.id} habit={h} done={!!completions[todayStr]?.includes(h.id)}
-          streak={getStreak(h.id, completions, today)} onToggle={() => toggle(todayStr, h.id)} />
-      ))}
+      {habits.length === 0 && <div className="card empty">No habits yet. Tap ⚙️ Habits to add some.</div>}
+      {daily.length > 0 && <h2 className="group-title">Every day</h2>}
+      {daily.map((h) => card(h, todayStr))}
+      {weekly.length > 0 && <h2 className="group-title">This week's goals</h2>}
+      {weekly.map((h) => card(h, todayStr))}
       {habits.length > 0 && (
         <div className="card soft">
           <button className="link-btn" onClick={() => setShowYesterday((s) => !s)}>
@@ -119,10 +160,7 @@ function TodayTab({ habits, completions, toggle, today }) {
           {showYesterday && (
             <div className="stack tight" style={{ marginTop: 10 }}>
               <p className="hint">Only check what you actually did. Honest data is the whole point.</p>
-              {habits.filter((h) => h.since <= yStr).map((h) => (
-                <HabitCard key={h.id} habit={h} done={!!completions[yStr]?.includes(h.id)} streak={0}
-                  onToggle={() => toggle(yStr, h.id)} />
-              ))}
+              {habits.filter((h) => h.since <= yStr).map((h) => card(h, yStr))}
             </div>
           )}
         </div>
@@ -147,19 +185,18 @@ function WeekTab({ habits, completions, today }) {
           <Row key={h.id} h={h} days={week} completions={completions} today={today} />
         ))}
       </div>
-      <p className="legend"><i className="cell done" /> done <i className="cell miss" /> missed <i className="cell future" /> not yet</p>
+      <p className="legend"><i className="cell done" /> done <i className="cell miss" /> missed <i className="cell off" /> rest day (weekly goals) <i className="cell future" /> not yet</p>
     </div>
   );
 }
 function Row({ h, days, completions, today }) {
-  const s = score(h, completions, days.filter((d) => d <= today));
+  const s = weekScore(h, completions, days[0], today);
   return (
     <>
-      <span className="wk-habit" title={h.name}>{h.icon}<small>{s.done}/{s.of}</small></span>
+      <span className="wk-habit" title={h.name}>{h.icon}<small>{h.perWeek ? `${s.raw}/${h.perWeek}` : `${s.done}/${s.of}`}</small></span>
       {days.map((d, i) => {
-        const ds = fmt(d);
-        const state = d > today ? 'future' : ds < h.since ? 'future' : completions[ds]?.includes(h.id) ? 'done' : ds === fmt(today) ? 'today' : 'miss';
-        return <span key={i} className={`cell ${state}`} aria-label={`${h.name} ${ds} ${state}`} />;
+        const state = cellState(h, completions, d, today);
+        return <span key={i} className={`cell ${state}`} aria-label={`${h.name} ${fmt(d)} ${state}`} />;
       })}
     </>
   );
@@ -167,60 +204,58 @@ function Row({ h, days, completions, today }) {
 
 // ─── Reality check ───────────────────────────────────────────────────────────
 function RealityTab({ habits, completions, today }) {
-  const last = (n) => Array.from({ length: n }, (_, i) => addDays(today, -(n - 1) + i));
-  const d7 = last(7), d28 = last(28);
-  const total = (days) => habits.reduce((a, h) => { const s = score(h, completions, days); return { done: a.done + s.done, of: a.of + s.of }; }, { done: 0, of: 0 });
-  const t7 = total(d7), t28 = total(d28);
+  const thisMon = getWeekDates(today)[0];
+  const mondays = [3, 2, 1, 0].map((n) => addDays(thisMon, -7 * n)); // oldest to newest
+  const d28 = Array.from({ length: 28 }, (_, i) => addDays(mondays[0], i));
   const rows = habits.map((h) => {
-    const weeks = [0, 1, 2, 3].map((w) => score(h, completions, d28.slice(w * 7, w * 7 + 7)));
-    return { h, weeks, s28: score(h, completions, d28) };
+    const weeks = mondays.map((m) => weekScore(h, completions, m, today));
+    return { h, weeks, total: sum(weeks), now: weeks[3] };
   });
-  const ranked = rows.filter((r) => r.s28.of > 0).sort((a, b) => pctOf(a.s28) - pctOf(b.s28));
+  const tWeek = sum(rows.map((r) => r.now)), t4 = sum(rows.map((r) => r.total));
+  const ranked = rows.filter((r) => r.total.of > 0).sort((a, b) => pctOf(a.total) - pctOf(b.total));
   const weakest = ranked[0], strongest = ranked[ranked.length - 1];
   return (
     <div className="stack">
       <div className="card score-card">
         <div className="big-score">
-          <span className="label">Last 7 days</span>
-          <span className="num">{pctOf(t7) ?? 0}%</span>
-          <span className="sub">{t7.done} of {t7.of} check-ins</span>
+          <span className="label">This week so far</span>
+          <span className="num">{pctOf(tWeek) ?? 0}%</span>
+          <span className="sub">{tWeek.done} of {tWeek.of}</span>
         </div>
         <div className="big-score alt">
-          <span className="label">Last 28 days</span>
-          <span className="num">{pctOf(t28) ?? 0}%</span>
-          <span className="sub">{t28.done} of {t28.of} check-ins</span>
+          <span className="label">Last 4 weeks</span>
+          <span className="num">{pctOf(t4) ?? 0}%</span>
+          <span className="sub">{t4.done} of {t4.of}</span>
         </div>
       </div>
 
       {weakest && weakest !== strongest && (
         <div className="card truth">
-          <p><b>Most skipped:</b> {weakest.h.icon} {weakest.h.name} ({weakest.s28.done}/{weakest.s28.of} days)</p>
-          <p><b>Most consistent:</b> {strongest.h.icon} {strongest.h.name} ({strongest.s28.done}/{strongest.s28.of} days)</p>
+          <p><b>Needs the most help:</b> {weakest.h.icon} {weakest.h.name} ({pctOf(weakest.total)}%)</p>
+          <p><b>Most consistent:</b> {strongest.h.icon} {strongest.h.name} ({pctOf(strongest.total)}%)</p>
           <p className="hint">This is information, not a grade. Pick one habit to make easier this week.</p>
         </div>
       )}
 
       <div className="card">
         <h2 className="card-title">Last 4 weeks, habit by habit</h2>
-        {rows.map(({ h, weeks, s28 }) => (
+        {rows.map(({ h, weeks, total }) => (
           <div key={h.id} className="reality-row">
             <div className="reality-head">
-              <span>{h.icon} {h.name}</span>
-              <b>{pctOf(s28) ?? 0}%</b>
+              <span>{h.icon} {h.name} <small className="goal-tag">{goalLabel(h)}</small></span>
+              <b>{pctOf(total) ?? 0}%</b>
             </div>
             <div className="strip">
-              {d28.map((d, i) => {
-                const ds = fmt(d);
-                const st = ds < h.since ? 'future' : completions[ds]?.includes(h.id) ? 'done' : ds === fmt(today) ? 'today' : 'miss';
-                return <span key={i} className={`cell ${st}`} />;
-              })}
+              {d28.map((d, i) => <span key={i} className={`cell ${cellState(h, completions, d, today)}`} />)}
             </div>
             <div className="weeks">
-              {weeks.map((w, i) => <span key={i}>{i === 3 ? 'This wk' : `${3 - i} wk ago`}: <b>{w.of ? `${w.done}/${w.of}` : 'n/a'}</b></span>)}
+              {weeks.map((w, i) => (
+                <span key={i}>{i === 3 ? 'This wk' : `${3 - i} wk ago`}: <b>{w.of ? (h.perWeek ? `${w.raw}/${h.perWeek}${w.raw >= h.perWeek ? ' ✓' : ''}` : `${w.done}/${w.of}`) : 'n/a'}</b></span>
+              ))}
             </div>
           </div>
         ))}
-        <p className="legend"><i className="cell done" /> done <i className="cell miss" /> missed <i className="cell future" /> before you added it</p>
+        <p className="legend"><i className="cell done" /> done <i className="cell miss" /> missed <i className="cell off" /> rest day <i className="cell future" /> before you added it</p>
       </div>
     </div>
   );
@@ -257,9 +292,19 @@ function GoalsTab({ goals, setGoals, weekKey }) {
 }
 
 // ─── Edit habits ─────────────────────────────────────────────────────────────
+function FreqSelect({ value, onChange }) {
+  return (
+    <select className="input freq" value={value || 0} aria-label="How often" onChange={(e) => onChange(Number(e.target.value) || undefined)}>
+      <option value={0}>Every day</option>
+      {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}x a week</option>)}
+    </select>
+  );
+}
+
 function HabitsEditor({ habits, setHabits, onClose, today }) {
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('⭐');
+  const [freq, setFreq] = useState(undefined);
   const active = habits.filter((h) => h.active);
   const archived = habits.filter((h) => !h.active);
   const update = (id, patch) => setHabits((hs) => hs.map((h) => (h.id === id ? { ...h, ...patch } : h)));
@@ -272,8 +317,8 @@ function HabitsEditor({ habits, setHabits, onClose, today }) {
   });
   const add = () => {
     if (!name.trim()) return;
-    setHabits((hs) => [...hs, { id: `h${Date.now()}`, name: name.trim(), icon: icon || '⭐', active: true, since: fmt(today) }]);
-    setName(''); setIcon('⭐');
+    setHabits((hs) => [...hs.filter((h) => h.active), { id: `h${Date.now()}`, name: name.trim(), icon: icon || '⭐', active: true, since: fmt(today), ...(freq ? { perWeek: freq } : {}) }, ...hs.filter((h) => !h.active)]);
+    setName(''); setIcon('⭐'); setFreq(undefined);
   };
   return (
     <div className="sheet" role="dialog" aria-label="Edit habits">
@@ -282,12 +327,15 @@ function HabitsEditor({ habits, setHabits, onClose, today }) {
           <h2 className="card-title">Your habits</h2>
           <button className="btn pink" onClick={onClose}>Done</button>
         </div>
-        <p className="hint">{active.length > 5 ? `You have ${active.length}. 3 to 5 is easier to stick with.` : '3 to 5 habits works best. Archiving keeps the history.'}</p>
+        <p className="hint">Set each one to every day or a weekly goal. Archiving keeps the history.</p>
         <div className="stack tight">
           {active.map((h, i) => (
             <div key={h.id} className="edit-row">
               <input className="input emoji" value={h.icon} maxLength={4} aria-label="Icon" onChange={(e) => update(h.id, { icon: e.target.value })} />
-              <input className="input" value={h.name} aria-label="Habit name" onChange={(e) => update(h.id, { name: e.target.value })} />
+              <div className="name-freq">
+                <input className="input" value={h.name} aria-label="Habit name" onChange={(e) => update(h.id, { name: e.target.value })} />
+                <FreqSelect value={h.perWeek} onChange={(v) => update(h.id, { perWeek: v })} />
+              </div>
               <div className="mini">
                 <button onClick={() => move(h.id, -1)} disabled={i === 0} aria-label="Move up">↑</button>
                 <button onClick={() => move(h.id, 1)} disabled={i === active.length - 1} aria-label="Move down">↓</button>
@@ -299,7 +347,10 @@ function HabitsEditor({ habits, setHabits, onClose, today }) {
         <h3 className="sub-title">Add a habit</h3>
         <div className="edit-row">
           <input className="input emoji" value={icon} maxLength={4} aria-label="New icon" onChange={(e) => setIcon(e.target.value)} />
-          <input className="input" placeholder="e.g. In bed by 9:30" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+          <div className="name-freq">
+            <input className="input" placeholder="e.g. Stretch 10 min" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
+            <FreqSelect value={freq} onChange={setFreq} />
+          </div>
           <button className="btn yellow" onClick={add}>Add</button>
         </div>
         {archived.length > 0 && (
@@ -326,6 +377,10 @@ export default function App() {
   const [goals, setGoals] = usePersisted('ht_goals', {});
   const [dismissedWeek, setDismissedWeek] = usePersisted('ht_dismissed', '');
   const [allHabits, setHabits] = usePersisted('ht_habits', initialHabits);
+  const [presetDone, setPresetDone] = usePersisted('ht_preset_v2', false);
+  useEffect(() => {
+    if (!presetDone) { setHabits((hs) => applyPresetV2(hs, fmt(new Date()))); setPresetDone(true); }
+  }, [presetDone, setHabits, setPresetDone]);
   const [tab, setTab] = useState('today');
   const [editing, setEditing] = useState(false);
 
