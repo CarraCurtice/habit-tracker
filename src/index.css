@@ -10,10 +10,7 @@ html {
 
 body {
   height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #FFFAF7;
-  color: #2D3436;
-  -webkit-font-smoothing: antialiased;
+    -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
