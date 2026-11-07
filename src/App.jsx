@@ -171,7 +171,7 @@ function TodayTab({ habits, completions, toggle, today }) {
 
 // ─── Week ────────────────────────────────────────────────────────────────────
 const DAY = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-function WeekTab({ habits, completions, today }) {
+function WeekTab({ habits, completions, today, toggle }) {
   const week = getWeekDates(today);
   return (
     <div className="card">
@@ -182,21 +182,24 @@ function WeekTab({ habits, completions, today }) {
           <span key={i} className={`wk-head${fmt(d) === fmt(today) ? ' now' : ''}`}>{DAY[i]}<b>{d.getDate()}</b></span>
         ))}
         {habits.map((h) => (
-          <Row key={h.id} h={h} days={week} completions={completions} today={today} />
+          <Row key={h.id} h={h} days={week} completions={completions} today={today} toggle={toggle} />
         ))}
       </div>
       <p className="legend"><i className="cell done" /> done <i className="cell miss" /> missed <i className="cell off" /> rest day (weekly goals) <i className="cell future" /> not yet</p>
+      <p className="hint">Forgot a day? Tap any square up to today to mark it done, tap again to undo.</p>
     </div>
   );
 }
-function Row({ h, days, completions, today }) {
+function Row({ h, days, completions, today, toggle }) {
   const s = weekScore(h, completions, days[0], today);
   return (
     <>
       <span className="wk-habit" title={h.name}>{h.icon}<small>{h.perWeek ? `${s.raw}/${h.perWeek}` : `${s.done}/${s.of}`}</small></span>
       {days.map((d, i) => {
         const state = cellState(h, completions, d, today);
-        return <span key={i} className={`cell ${state}`} aria-label={`${h.name} ${fmt(d)} ${state}`} />;
+        if (state === 'future' || !toggle) return <span key={i} className={`cell ${state}`} aria-label={`${h.name} ${fmt(d)} ${state}`} />;
+        return <button type="button" key={i} className={`cell tap ${state}`} aria-pressed={state === 'done'}
+          aria-label={`${h.name} ${fmt(d)}: ${state === 'done' ? 'done, tap to undo' : 'tap to mark done'}`} onClick={() => toggle(fmt(d), h.id)} />;
       })}
     </>
   );
@@ -430,7 +433,7 @@ export default function App() {
 
       <main className="main">
         {tab === 'today' && <TodayTab habits={habits} completions={completions} toggle={toggle} today={today} />}
-        {tab === 'week' && <WeekTab habits={habits} completions={completions} today={today} />}
+        {tab === 'week' && <WeekTab habits={habits} completions={completions} today={today} toggle={toggle} />}
         {tab === 'reality' && <RealityTab habits={habits} completions={completions} today={today} />}
         {tab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} weekKey={weekKey} />}
         <Squiggle />

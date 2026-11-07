@@ -131,6 +131,8 @@ body {
 .wk-habit { font-size: 1.2rem; display: flex; align-items: center; gap: 4px; }
 .wk-habit small { font-size: 0.7rem; font-weight: 700; color: var(--muted); }
 .cell { display: block; aspect-ratio: 1; border: 2px solid var(--ink); border-radius: 6px; }
+.cell.tap { padding: 0; width: 100%; cursor: pointer; font: inherit; }
+.cell.tap:active { transform: scale(0.9); }
 .cell.done { background: var(--teal); }
 .cell.miss { background: var(--miss); background-image: linear-gradient(45deg, transparent 45%, var(--pink) 45% 55%, transparent 55%); }
 .cell.today { background: #fff; border-style: dashed; }
