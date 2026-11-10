@@ -78,14 +78,27 @@ function initialHabits() {
   });
 }
 
+// Weekly goals can change over time. goalHistory = [{ from: 'YYYY-MM-DD' (a Monday), perWeek }].
+// Each week is scored against the goal that was in effect that week, not today's goal.
+const mondayOf = (d) => addDays(d, -((d.getDay() + 6) % 7));
+function goalFor(habit, monday) {
+  const hist = habit.goalHistory;
+  if (!hist || !hist.length) return habit.perWeek;
+  const key = fmt(monday);
+  let g = hist[0].perWeek;
+  for (const e of [...hist].sort((a, b) => (a.from < b.from ? -1 : 1))) if (e.from <= key) g = e.perWeek;
+  return g;
+}
+
 // Honest score for one habit in one calendar week (Mon to Sun).
 // Daily habits: days done out of days so far. Weekly goals: done (capped at the goal) out of the goal.
 function weekScore(habit, completions, monday, today) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   if (fmt(days[6]) < habit.since) return { done: 0, of: 0, extra: 0 };
   const doneDays = days.filter((d) => d <= today && completions[fmt(d)]?.includes(habit.id)).length;
-  if (habit.perWeek) {
-    return { done: Math.min(doneDays, habit.perWeek), of: habit.perWeek, extra: Math.max(0, doneDays - habit.perWeek), raw: doneDays };
+  const goal = goalFor(habit, monday);
+  if (goal) {
+    return { done: Math.min(doneDays, goal), of: goal, extra: Math.max(0, doneDays - goal), raw: doneDays, goal };
   }
   const counted = days.filter((d) => d <= today && fmt(d) >= habit.since);
   return { done: doneDays, of: counted.length, extra: 0 };
@@ -97,7 +110,7 @@ function cellState(h, completions, d, today) {
   if (d > today || ds < h.since) return 'future';
   if (completions[ds]?.includes(h.id)) return 'done';
   if (ds === fmt(today)) return 'today';
-  return h.perWeek ? 'off' : 'miss';
+  return goalFor(h, mondayOf(d)) ? 'off' : 'miss';
 }
 const pctOf = ({ done, of }) => (of ? Math.round((done / of) * 100) : null);
 
@@ -194,7 +207,7 @@ function Row({ h, days, completions, today, toggle }) {
   const s = weekScore(h, completions, days[0], today);
   return (
     <>
-      <span className="wk-habit" title={h.name}>{h.icon}<small>{h.perWeek ? `${s.raw}/${h.perWeek}` : `${s.done}/${s.of}`}</small></span>
+      <span className="wk-habit" title={h.name}>{h.icon}<small>{s.goal ? `${s.raw}/${s.goal}` : `${s.done}/${s.of}`}</small></span>
       {days.map((d, i) => {
         const state = cellState(h, completions, d, today);
         if (state === 'future' || !toggle) return <span key={i} className={`cell ${state}`} aria-label={`${h.name} ${fmt(d)} ${state}`} />;
@@ -253,7 +266,7 @@ function RealityTab({ habits, completions, today }) {
             </div>
             <div className="weeks">
               {weeks.map((w, i) => (
-                <span key={i}>{i === 3 ? 'This wk' : `${3 - i} wk ago`}: <b>{w.of ? (h.perWeek ? `${w.raw}/${h.perWeek}${w.raw >= h.perWeek ? ' ✓' : ''}` : `${w.done}/${w.of}`) : 'n/a'}</b></span>
+                <span key={i}>{i === 3 ? 'This wk' : `${3 - i} wk ago`}: <b>{w.of ? (w.goal ? `${w.raw}/${w.goal}${w.raw >= w.goal ? ' ✓' : ''}` : `${w.done}/${w.of}`) : 'n/a'}</b></span>
               ))}
             </div>
           </div>
@@ -265,6 +278,13 @@ function RealityTab({ habits, completions, today }) {
 }
 
 // ─── Goals ───────────────────────────────────────────────────────────────────
+// Keep earlier weeks scored at the old goal: the new goal starts this Monday.
+function withGoalChange(h, v) {
+  const thisMon = fmt(mondayOf(startOfDay(new Date())));
+  const base = h.goalHistory && h.goalHistory.length ? h.goalHistory : [{ from: '0000-01-01', perWeek: h.perWeek }];
+  return [...base.filter((e) => e.from !== thisMon), { from: thisMon, perWeek: v }];
+}
+
 function GoalsTab({ goals, setGoals, weekKey }) {
   const current = goals[weekKey] || ['', '', '', '', ''];
   const [editing, setEditing] = useState(false);
@@ -337,7 +357,7 @@ function HabitsEditor({ habits, setHabits, onClose, today }) {
               <input className="input emoji" value={h.icon} maxLength={4} aria-label="Icon" onChange={(e) => update(h.id, { icon: e.target.value })} />
               <div className="name-freq">
                 <input className="input" value={h.name} aria-label="Habit name" onChange={(e) => update(h.id, { name: e.target.value })} />
-                <FreqSelect value={h.perWeek} onChange={(v) => update(h.id, { perWeek: v })} />
+                <FreqSelect value={h.perWeek} onChange={(v) => update(h.id, { perWeek: v, goalHistory: withGoalChange(h, v) })} />
               </div>
               <div className="mini">
                 <button onClick={() => move(h.id, -1)} disabled={i === 0} aria-label="Move up">↑</button>
@@ -384,6 +404,13 @@ export default function App() {
   useEffect(() => {
     if (!presetDone) { setHabits((hs) => applyPresetV2(hs, fmt(new Date()))); setPresetDone(true); }
   }, [presetDone, setHabits, setPresetDone]);
+  const [goalFixDone, setGoalFixDone] = usePersisted('ht_goalfix_gym3', false);
+  useEffect(() => {
+    if (goalFixDone) return;
+    setHabits((hs) => hs.map((h) => (h.id === 'gym' && h.perWeek === 3 && !h.goalHistory
+      ? { ...h, goalHistory: [{ from: '0000-01-01', perWeek: 2 }, { from: '2026-11-09', perWeek: 3 }] } : h)));
+    setGoalFixDone(true);
+  }, [goalFixDone, setHabits, setGoalFixDone]);
   const [tab, setTab] = useState('today');
   const [editing, setEditing] = useState(false);
 
